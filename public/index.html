@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Classroom Dashboard</title>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">SC</div>
+            <div>
+                <h2>Smart Classroom</h2>
+                <span>Occupancy System</span>
+            </div>
+        </div>
+
+        <nav class="navigation">
+            <a href="#" class="nav-item active" onclick="showPage('dashboard', this)">
+                <span>📊</span> Dashboard
+            </a>
+            <a href="#" class="nav-item" onclick="showPage('rooms', this)">
+                <span>🏫</span> Rooms
+            </a>
+            <a href="#" class="nav-item" onclick="showPage('history', this)">
+                <span>📈</span> Occupancy History
+            </a>
+            <a href="#" class="nav-item" onclick="showPage('settings', this)">
+                <span>⚙️</span> Settings
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="system-status">
+                <span class="status-dot online"></span>
+                <div>
+                    <strong>System Online</strong>
+                    <small>Supabase Cloud</small>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="main-content">
+
+        <!-- HEADER -->
+        <header class="topbar">
+            <div>
+                <h1 id="page-title">Dashboard</h1>
+                <p>Monitor classroom occupancy in real time via Supabase.</p>
+            </div>
+
+            <div class="topbar-right">
+                <div class="connection-status">
+                    <span class="status-dot online"></span>
+                    Cloud Connected
+                </div>
+
+                <div class="user-profile">
+                    <div class="avatar">A</div>
+                    <div>
+                        <strong>Administrator</strong>
+                        <small>System Admin</small>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ================= DASHBOARD PAGE ================= -->
+        <section id="dashboard-page" class="page active-page">
+
+            <!-- SYSTEM OVERVIEW -->
+            <div class="overview-section">
+                <div class="section-header overview-header">
+                    <div>
+                        <h2>System Overview</h2>
+                        <p>Real-time summary of the Smart Classroom monitoring system.</p>
+                    </div>
+                    <div class="live-indicator">
+                        <span></span> LIVE
+                    </div>
+                </div>
+
+                <div class="overview-grid">
+                    <div class="overview-card">
+                        <div class="overview-icon blue">👥</div>
+                        <div>
+                            <span>Current Occupants</span>
+                            <h2 id="overview-occupants">0</h2>
+                            <small>People detected</small>
+                        </div>
+                    </div>
+
+                    <div class="overview-card">
+                        <div class="overview-icon green">🪑</div>
+                        <div>
+                            <span>Available Seats</span>
+                            <h2 id="overview-available">30</h2>
+                            <small>Seats remaining</small>
+                        </div>
+                    </div>
+
+                    <div class="overview-card">
+                        <div class="overview-icon purple">🏫</div>
+                        <div>
+                            <span>Room Capacity</span>
+                            <h2 id="overview-capacity">30</h2>
+                            <small>Total seats</small>
+                        </div>
+                    </div>
+
+                    <div class="overview-card">
+                        <div class="overview-icon orange">📊</div>
+                        <div>
+                            <span>Occupancy Rate</span>
+                            <h2 id="overview-percentage">0%</h2>
+                            <small>Current utilization</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overview-status">
+                    <div>
+                        <span class="status-label">📡 Database</span>
+                        <strong id="overview-esp32-status" class="text-green">Supabase Synced</strong>
+                    </div>
+                    <div>
+                        <span class="status-label">📶 Real-time</span>
+                        <strong id="overview-wifi-status" class="text-green">Active</strong>
+                    </div>
+                    <div>
+                        <span class="status-label">🕐 Last Update</span>
+                        <strong id="overview-last-update">Just now</strong>
+                    </div>
+                    <div>
+                        <span class="status-label">🏫 Monitored Room</span>
+                        <strong>Room 101</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM GRID -->
+            <div class="bottom-grid">
+                <!-- OCCUPANCY OVERVIEW -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Occupancy Overview</h2>
+                            <p>Current Room 101 utilization</p>
+                        </div>
+                    </div>
+
+                    <div class="occupancy-overview">
+                        <div class="big-number">
+                            <strong id="total-occupants">0</strong>
+                            <span>Current Occupants</span>
+                        </div>
+
+                        <div class="capacity-info">
+                            <div class="capacity-row">
+                                <span>Current Occupancy</span>
+                                <strong id="occupancy-percentage">0%</strong>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+                            </div>
+
+                            <small id="occupancy-seats-text">
+                                0 of 30 seats occupied
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SYSTEM INFO -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>System Information</h2>
+                            <p>Cloud status</p>
+                        </div>
+                    </div>
+
+                    <div class="system-info">
+                        <div class="info-row">
+                            <span>📡 Device</span>
+                            <strong id="device-name">ESP32-ROOM-101</strong>
+                        </div>
+                        <div class="info-row">
+                            <span>📶 Status</span>
+                            <strong id="wifi-status" class="text-green">Online</strong>
+                        </div>
+                        <div class="info-row">
+                            <span>🕐 Last Update</span>
+                            <strong id="last-update">Just now</strong>
+                        </div>
+                        <div class="info-row">
+                            <span>🔄 Data Source</span>
+                            <strong>Supabase Cloud</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <div>
+                    <h2>Live Room Monitoring</h2>
+                    <p>Real-time classroom occupancy status</p>
+                </div>
+                <div class="live-indicator">
+                    <span></span> LIVE
+                </div>
+            </div>
+
+            <div class="room-grid" id="room-grid">
+                <!-- Room cards generated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- ================= ROOMS PAGE ================= -->
+        <section id="rooms-page" class="page">
+            <div class="section-header">
+                <div>
+                    <h2>Classroom Rooms</h2>
+                    <p>View detailed information for each classroom.</p>
+                </div>
+            </div>
+            <div class="room-grid" id="all-room-grid"></div>
+        </section>
+
+        <!-- ================= HISTORY PAGE ================= -->
+        <section id="history-page" class="page">
+            <div class="section-header">
+                <div>
+                    <h2>Room Status & Occupancy History</h2>
+                    <p>View live room summaries or detailed event audit logs.</p>
+                </div>
+            </div>
+
+            <!-- Sub-tabs: Room Summary vs Detailed History -->
+            <div class="history-sub-tabs" style="margin-bottom: 20px; display: flex; gap: 10px;">
+                <button class="sub-tab-btn active" onclick="switchHistorySubTab('summary', this)" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #3b82f6; background: #3b82f6; color: white; cursor: pointer; font-weight: 600;">Room Summary</button>
+                <button class="sub-tab-btn" onclick="switchHistorySubTab('detailed', this)" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #3b82f6; background: transparent; color: #3b82f6; cursor: pointer; font-weight: 600;">Detailed History</button>
+            </div>
+
+            <!-- VIEW 1: ROOM SUMMARY TABLE (One summary row per room) -->
+            <div id="room-summary-view" class="history-sub-view">
+                <div class="panel">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Room Name</th>
+                                    <th>Current Occupants</th>
+                                    <th>Capacity</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="room-summary-table">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 2: DETAILED HISTORY TABLE (Timestamped logs with room filters) -->
+            <div id="detailed-history-view" class="history-sub-view" style="display: none;">
+               <div class="room-tabs" style="margin-bottom: 15px; display: flex; gap: 10px;">
+    <button class="room-tab-btn active" onclick="switchHistoryRoom(1, this)" style="padding: 6px 14px; border-radius: 6px; border: 1px solid #3b82f6; background: #3b82f6; color: white; cursor: pointer; font-weight: 600;">Room 101</button>
+    <button class="room-tab-btn" onclick="switchHistoryRoom(2, this)" style="padding: 6px 14px; border-radius: 6px; border: 1px solid #3b82f6; background: transparent; color: #3b82f6; cursor: pointer; font-weight: 600;">Room 102</button>
+</div>
+                <div class="panel">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Room</th>
+                                    <th>Occupants</th>
+                                    <th>Capacity</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SETTINGS PAGE ================= -->
+        <section id="settings-page" class="page">
+            <div class="section-header">
+                <div>
+                    <h2>System Settings</h2>
+                    <p>Configure your Smart Classroom monitoring system.</p>
+                </div>
+            </div>
+            <div class="panel settings-panel">
+                <h3>System Configuration</h3>
+                <div class="setting-item">
+                    <div>
+                        <strong>Cloud Real-Time Sync</strong>
+                        <p>Automatically listen to changes from Supabase.</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" checked disabled>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- JavaScript -->
+<script src="script.js"></script>
+
+</body>
+</html>
