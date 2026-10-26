@@ -15,7 +15,7 @@ let room = {
     lastUpdated: new Date()
 };
 
-let currentHistoryRoomId = 1; // Active tab tracker for history
+let currentHistoryRoomId = 1; 
 const occupancyHistory = [];
 const MAX_GRAPH_POINTS = 12;
 
@@ -99,21 +99,17 @@ async function fetchHistoryLogs(roomId) {
     }).join("");
 }
 
-// Switch detailed history room tab dynamically
 function switchHistoryRoom(roomId, buttonElement) {
     currentHistoryRoomId = roomId;
-
     document.querySelectorAll(".room-tab-btn").forEach(btn => {
         btn.style.background = "transparent";
         btn.style.color = "#3b82f6";
     });
     buttonElement.style.background = "#3b82f6";
     buttonElement.style.color = "white";
-
     fetchHistoryLogs(roomId);
 }
 
-// Switch between Room Summary view and Detailed History view
 function switchHistorySubTab(viewName, buttonElement) {
     document.querySelectorAll(".sub-tab-btn").forEach(btn => {
         btn.style.background = "transparent";
@@ -138,7 +134,6 @@ function switchHistorySubTab(viewName, buttonElement) {
     }
 }
 
-// Render the single-row room summary table
 function updateRoomSummaryTable() {
     const summaryTable = document.getElementById("room-summary-table");
     if (!summaryTable) return;
@@ -161,9 +156,6 @@ function updateRoomSummaryTable() {
     `;
 }
 
-// ==========================================
-// SETUP REALTIME SUBSCRIPTION
-// ==========================================
 function setupRealtimeListener() {
     supabaseClient
         .channel('room_occupancy_changes')
@@ -184,9 +176,6 @@ function setupRealtimeListener() {
         .subscribe();
 }
 
-// ==========================================
-// CREATE LIVE GRAPH
-// ==========================================
 function createLiveGraph() {
     if (document.getElementById("live-occupancy-graph")) return;
 
@@ -324,9 +313,6 @@ function drawLiveGraph() {
     setText("graph-current-value", currentValue);
 }
 
-// ==========================================
-// CREATE ROOM CARD (Dynamic Math)
-// ==========================================
 function createRoomCard(roomData) {
     const availableSeats = Math.max(0, roomData.capacity - roomData.occupants);
     const percentage = roomData.capacity > 0 ? Math.min(100, Math.round((roomData.occupants / roomData.capacity) * 100)) : 0;
@@ -363,9 +349,6 @@ function createRoomCard(roomData) {
     `;
 }
 
-// ==========================================
-// UPDATE DASHBOARD UI
-// ==========================================
 function updateRoomDisplay() {
     const availableSeats = Math.max(0, room.capacity - room.occupants);
     const percentage = room.capacity > 0 ? Math.min(100, Math.round((room.occupants / room.capacity) * 100)) : 0;
@@ -392,9 +375,7 @@ function updateRoomDisplay() {
     setText("overview-percentage", percentage + "%");
     setText("graph-current-value", room.occupants);
 
-    // Update Room Summary Table if visible
     updateRoomSummaryTable();
-
     drawLiveGraph();
     updateTime();
 }
@@ -404,9 +385,6 @@ function setText(id, value) {
     if (element) element.textContent = value;
 }
 
-// ==========================================
-// NAVIGATION
-// ==========================================
 function showPage(pageName, element) {
     document.querySelectorAll(".page").forEach(page => page.classList.remove("active-page"));
     const selectedPage = document.getElementById(pageName + "-page");

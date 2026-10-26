@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Smart Classroom</title>
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="background: #0f172a; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+
+    <!-- If already logged in, skip login screen and redirect immediately -->
+    <script>
+        if (sessionStorage.getItem("isLoggedIn") === "true") {
+            window.location.href = "index.html";
+        }
+    </script>
+
+    <div style="background: #ffffff; padding: 35px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="background: #3b82f6; color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; margin: 0 auto 12px;">SC</div>
+            <h2 style="margin: 0 0 5px; color: #111827;">Admin Portal</h2>
+            <p style="color: #6b7280; font-size: 14px; margin: 0;">Sign in to access Smart Classroom control</p>
+        </div>
+
+        <form id="login-form" onsubmit="handleAdminLogin(event)">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">Username</label>
+                <input type="text" id="admin-user" required placeholder="Enter username" style="width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">Password</label>
+                <!-- Password Field with Show/Hide Toggle Wrapper -->
+                <div style="position: relative; display: flex; align-items: center;">
+                    <input type="password" id="admin-pass" required placeholder="Enter password" style="width: 100%; padding: 10px 40px 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
+                    <button type="button" onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; color: #6b7280; padding: 0; display: flex; align-items: center;" title="Show/Hide Password">
+                        <!-- Eye Icon (Show) -->
+                        <svg id="eye-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="login-error" style="color: #dc2626; font-size: 13px; margin-bottom: 15px; text-align: center; display: none;">Invalid username or password</div>
+
+            <button type="submit" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer;">Login</button>
+        </form>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://onaisgndygjgydioaeej.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uYWlzZ25keWdqZ3lkaW9hZWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NDMxNzAsImV4cCI6MjEwODQxOTE3MH0.roIKdNM2B0KKSWn4sexSE5fslHTJ0uwA0bw_kDZUUco";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Toggle password show/hide function
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById("admin-pass");
+            const eyeIcon = document.getElementById("eye-icon");
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                // Change icon to 'Eye Off' (Hidden state)
+                eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>`;
+            } else {
+                passwordInput.type = "password";
+                // Revert icon to 'Eye' (Show state)
+                eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+            }
+        }
+
+        async function handleAdminLogin(event) {
+            event.preventDefault();
+            const usernameInput = document.getElementById("admin-user").value.trim();
+            const passwordInput = document.getElementById("admin-pass").value.trim();
+            const errorDiv = document.getElementById("login-error");
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('admins')
+                    .select('*')
+                    .eq('username', usernameInput)
+                    .eq('password', passwordInput)
+                    .single();
+
+                if (error || !data) {
+                    errorDiv.style.display = "block";
+                    return;
+                }
+
+                // Use localStorage instead of sessionStorage so it persists across refreshes
+                localStorage.setItem("isLoggedIn", "true");
+                localStorage.setItem("adminUser", data.username);
+                window.location.href = "index.html"; 
+            } catch (err) {
+                console.error("Login error:", err);
+                errorDiv.style.display = "block";
+            }
+        }
+    </script>
+</body>
+</html>
