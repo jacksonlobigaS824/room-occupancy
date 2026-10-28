@@ -421,3 +421,258 @@ fetchRoomData();
 setupRealtimeListener();
 
 window.addEventListener("resize", drawLiveGraph);
+
+
+/* ==========================================
+   DEVICE MONITORING + DASHBOARD CONTROLS
+   Requires the SQL columns you already added.
+========================================== */
+
+const deviceState = {
+    leds: [false, false, false, false, false, false],
+    fan: false,
+    mode: "AUTO",
+    manualLeds: [false, false, false, false, false, false],
+    manualFan: false,
+    lastSeen: null
+};
+
+function createDeviceMonitor() {
+    if (document.getElementById("device-monitor")) return;
+
+    const section = document.querySelector(".overview-section");
+    if (!section) {
+        console.error("Device monitor: .overview-section not found.");
+        return;
+    }
+
+    const panel = document.createElement("section");
+    panel.id = "device-monitor";
+    panel.style.cssText =
+        "margin-top:20px;padding:22px;background:white;" +
+        "border:1px solid #e5e7eb;border-radius:16px;";
+
+    panel.innerHTML = `
+      <h2 style="margin-top:0">Live Device Monitoring</h2>
+      <p style="color:#6b7280">
+        Room 101 · Maximum occupancy: 18 students
+      </p>
+
+      <div id="device-connection-status"
+           style="margin-bottom:16px;color:#6b7280">
+        Waiting for ESP32 status...
+      </div>
+
+      <div style="display:grid;grid-template-columns:
+           repeat(auto-fit,minmax(130px,1fr));gap:12px">
+
+        ${[1,2,3,4,5,6].map(n => `
+          <div style="padding:14px;border:1px solid #e5e7eb;
+               border-radius:12px">
+            <strong>LED ${n}</strong>
+            <div id="monitor-led-${n}"
+                 style="margin:10px 0;font-weight:700">UNKNOWN</div>
+            <button type="button" id="manual-led-${n}"
+                    style="padding:7px 10px;cursor:pointer">
+              Toggle LED ${n}
+            </button>
+          </div>
+        `).join("")}
+
+        <div style="padding:14px;border:1px solid #e5e7eb;
+             border-radius:12px">
+          <strong>Fan / Relay</strong>
+          <div id="monitor-fan"
+               style="margin:10px 0;font-weight:700">UNKNOWN</div>
+          <button type="button" id="manual-fan"
+                  style="padding:7px 10px;cursor:pointer">
+            Toggle Fan
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+        <button id="mode-auto" type="button"
+                style="padding:10px 14px;cursor:pointer">
+          AUTO Mode
+        </button>
+        <button id="mode-manual" type="button"
+                style="padding:10px 14px;cursor:pointer">
+          MANUAL Mode
+        </button>
+      </div>
+
+      <p id="device-control-message"
+         style="margin-bottom:0;color:#6b7280"></p>
+    `;
+
+    section.appendChild(panel);
+
+    for (let i = 1; i <= 6; i++) {
+        document.getElementById(`manual-led-${i}`)
+            .addEventListener("click", () => toggleManualLed(i - 1));
+    }
+
+    document.getElementById("manual-fan")
+        .addEventListener("click", toggleManualFan);
+
+    document.getElementById("mode-auto")
+        .addEventListener("click", () => setControlMode("AUTO"));
+
+    document.getElementById("mode-manual")
+        .addEventListener("click", () => setControlMode("MANUAL"));
+
+    renderDeviceMonitor();
+}
+
+function renderDeviceMonitor() {
+    for (let i = 0; i < 6; i++) {
+        const led = document.getElementById(`monitor-led-${i + 1}`);
+        if (!led) continue;
+
+        led.textContent = deviceState.leds[i] ? "ON" : "OFF";
+        led.style.color = deviceState.leds[i] ? "#16a34a" : "#6b7280";
+
+        const button = document.getElementById(`manual-led-${i + 1}`);
+        if (button) button.disabled = deviceState.mode !== "MANUAL";
+    }
+
+    const fan = document.getElementById("monitor-fan");
+    if (fan) {
+        fan.textContent = deviceState.fan ? "ON" : "OFF";
+        fan.style.color = deviceState.fan ? "#16a34a" : "#6b7280";
+    }
+
+    const fanButton = document.getElementById("manual-fan");
+    if (fanButton) fanButton.disabled = deviceState.mode !== "MANUAL";
+
+    setText("device-connection-status",
+        deviceState.lastSeen
+            ? "Status last received: " + deviceState.lastSeen.toLocaleTimeString()
+            : "Waiting for ESP32 status...");
+
+    setText("device-control-message",
+        "Control mode: " + deviceState.mode +
+        ". Manual controls are enabled only in MANUAL mode.");
+
+    const autoButton = document.getElementById("mode-auto");
+    const manualButton = document.getElementById("mode-manual");
+
+    if (autoButton) autoButton.style.fontWeight =
+        deviceState.mode === "AUTO" ? "700" : "400";
+    if (manualButton) manualButton.style.fontWeight =
+        deviceState.mode === "MANUAL" ? "700" : "400";
+}
+
+async function updateDeviceCommand(fields) {
+    const message = document.getElementById("device-control-message");
+    if (message) message.textContent = "Sending command...";
+
+    const { error } = await supabaseClient
+        .from("room_occupancy")
+        .update(fields)
+        .eq("room_id", room.id);
+
+    if (error) {
+        console.error("Device command failed:", error.message);
+        if (message) {
+            message.textContent = "Command failed: " + error.message;
+        }
+        return false;
+    }
+
+    if (message) {
+        message.textContent =
+            "Command saved. Waiting for the ESP32 to apply it.";
+    }
+    return true;
+}
+
+async function setControlMode(mode) {
+    if (mode !== "AUTO" && mode !== "MANUAL") return;
+
+    const ok = await updateDeviceCommand({ control_mode: mode });
+    if (ok) {
+        deviceState.mode = mode;
+        renderDeviceMonitor();
+    }
+}
+
+async function toggleManualLed(index) {
+    if (deviceState.mode !== "MANUAL") {
+        alert("Switch to MANUAL mode first.");
+        return;
+    }
+
+    const nextValue = !deviceState.manualLeds[index];
+    const field = `manual_led_${index + 1}_on`;
+
+    const ok = await updateDeviceCommand({
+        control_mode: "MANUAL",
+        [field]: nextValue
+    });
+
+    if (ok) deviceState.manualLeds[index] = nextValue;
+}
+
+async function toggleManualFan() {
+    if (deviceState.mode !== "MANUAL") {
+        alert("Switch to MANUAL mode first.");
+        return;
+    }
+
+    const nextValue = !deviceState.manualFan;
+    const ok = await updateDeviceCommand({
+        control_mode: "MANUAL",
+        fan_command_on: nextValue
+    });
+
+    if (ok) deviceState.manualFan = nextValue;
+}
+
+async function fetchDeviceMonitorState() {
+    const { data, error } = await supabaseClient
+        .from("room_occupancy")
+        .select(`
+            control_mode,
+            manual_led_1_on, manual_led_2_on, manual_led_3_on,
+            manual_led_4_on, manual_led_5_on, manual_led_6_on,
+            fan_command_on,
+            led_1_on, led_2_on, led_3_on,
+            led_4_on, led_5_on, led_6_on,
+            fan_on
+        `)
+        .eq("room_id", room.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Device monitoring read failed:", error.message);
+        setText("device-connection-status",
+            "Cannot read device status. Check Supabase permissions.");
+        return;
+    }
+
+    if (!data) return;
+
+    deviceState.mode = data.control_mode || "AUTO";
+    deviceState.manualLeds = [
+        !!data.manual_led_1_on, !!data.manual_led_2_on,
+        !!data.manual_led_3_on, !!data.manual_led_4_on,
+        !!data.manual_led_5_on, !!data.manual_led_6_on
+    ];
+    deviceState.manualFan = !!data.fan_command_on;
+
+    // These are the states reported by the ESP32 firmware.
+    deviceState.leds = [
+        !!data.led_1_on, !!data.led_2_on, !!data.led_3_on,
+        !!data.led_4_on, !!data.led_5_on, !!data.led_6_on
+    ];
+    deviceState.fan = !!data.fan_on;
+    deviceState.lastSeen = new Date();
+
+    renderDeviceMonitor();
+}
+
+createDeviceMonitor();
+fetchDeviceMonitorState();
+setInterval(fetchDeviceMonitorState, 3000);
